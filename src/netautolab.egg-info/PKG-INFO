@@ -1,0 +1,17 @@
+Metadata-Version: 2.4
+Name: netautolab
+Version: 0.1.0a1
+Summary: Professional Network Automation Learning Platform
+Author: Ganesh Raut
+License-Expression: MIT
+Requires-Python: >=3.12
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: typer>=0.16
+Requires-Dist: rich>=14.0
+Requires-Dist: pyyaml>=6.0
+Requires-Dist: requests>=2.32
+Requires-Dist: platformdirs>=4.3
+Requires-Dist: loguru>=0.7
+Requires-Dist: psutil>=7.0
+Dynamic: license-file
