@@ -1,0 +1,61 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "netautolab"
+version = "0.1.0a1"
+description = "Professional Network Automation Learning Platform"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+
+authors = [
+  { name = "Snehal Raut" }
+]
+
+keywords = [
+  "network-automation",
+  "ansible",
+  "aruba",
+  "netbox",
+  "python",
+  "eve-ng"
+]
+
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.12",
+  "Operating System :: OS Independent",
+  "License :: OSI Approved :: MIT License"
+]
+
+dependencies = [
+  "typer>=0.16",
+  "rich>=14.0",
+  "pyyaml>=6.0",
+  "requests>=2.32",
+  "platformdirs>=4.3",
+  "loguru>=0.7",
+  "psutil>=7.0"
+]
+
+[project.scripts]
+labdoctor = "netautolab.cli:app"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["netautolab*"]
+
+[tool.black]
+line-length = 88
+
+[tool.ruff]
+line-length = 88
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
