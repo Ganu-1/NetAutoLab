@@ -1,36 +1,19 @@
-import typer
-from rich import print
-from rich.console import Console
-from rich.table import Table
+from pathlib import Path
 
-from .config import load_config
-from .doctor import run
-from .version import __version__
+import yaml
 
-app = typer.Typer(
-    help="Professional Network Automation Learning Platform",
-    add_completion=False,
-)
+CONFIG_FILE = Path("config/default.yaml")
 
-console = Console()
 
-@app.command()
-def config():
-    """Display the current configuration."""
+class ConfigError(Exception):
+    """Raised when the configuration cannot be loaded."""
 
-    cfg = load_config()
 
-    table = Table(title="NetAutoLab Configuration")
+def load_config() -> dict:
+    """Load the NetAutoLab configuration."""
 
-    table.add_column("Setting", style="cyan")
-    table.add_column("Value", style="green")
+    if not CONFIG_FILE.exists():
+        raise ConfigError(f"Configuration file not found: {CONFIG_FILE}")
 
-    table.add_row("Lab Name", cfg["lab"]["name"])
-    table.add_row("Environment", cfg["lab"]["environment"])
-    table.add_row("Inventory", cfg["inventory"]["file"])
-    table.add_row("SSH User", cfg["ssh"]["username"])
-    table.add_row("SSH Port", str(cfg["ssh"]["port"]))
-    table.add_row("Log Level", cfg["logging"]["level"])
-    table.add_row("Reports", cfg["reports"]["directory"])
-
-    console.print(table)
+    with CONFIG_FILE.open("r", encoding="utf-8") as file:
+        return yaml.safe_load(file) or {}
