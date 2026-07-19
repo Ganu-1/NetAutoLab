@@ -1,6 +1,8 @@
+
 import typer
 from rich import print
 
+from .doctor import run
 from .version import __version__
 
 app = typer.Typer(
@@ -18,7 +20,7 @@ def version():
 @app.command()
 def doctor():
     """Run environment diagnostics."""
-    print("[green]Doctor engine coming soon![/green]")
+    raise typer.Exit(run())
 
 
 if __name__ == "__main__":
