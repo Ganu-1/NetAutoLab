@@ -4,6 +4,8 @@ pyproject.toml
 src/netautolab/__init__.py
 src/netautolab/__main__.py
 src/netautolab/cli.py
+src/netautolab/config.py
+src/netautolab/doctor.py
 src/netautolab/version.py
 src/netautolab.egg-info/PKG-INFO
 src/netautolab.egg-info/SOURCES.txt

@@ -1,0 +1,17 @@
+lab:
+  name: NetAutoLab
+  environment: development
+
+inventory:
+  file: inventory/lab.yml
+
+ssh:
+  username: admin
+  timeout: 10
+  port: 22
+
+logging:
+  level: INFO
+
+reports:
+  directory: reports
