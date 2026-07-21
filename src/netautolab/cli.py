@@ -5,6 +5,7 @@ from rich.table import Table
 
 from .config import load_config
 from .doctor import run
+from .inventory import load_inventory
 from .version import __version__
 
 app = typer.Typer(
@@ -51,3 +52,28 @@ def config():
 
 if __name__ == "__main__":
     app()
+
+@app.command()
+def inventory():
+    """Display the inventory."""
+
+    inv = load_inventory()
+
+    table = Table(title="Inventory Summary")
+    table.add_column("Group", style="cyan")
+    table.add_column("Host", style="green")
+    table.add_column("Hostname", style="yellow")
+
+    groups = inv.get("groups", {})
+
+    for group_name, group_data in groups.items():
+        hosts = group_data.get("hosts", {})
+
+        for host_name, host_data in hosts.items():
+            table.add_row(
+                group_name,
+                host_name,
+                host_data.get("hostname", "-"),
+            )
+
+    console.print(table)

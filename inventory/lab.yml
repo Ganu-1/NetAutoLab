@@ -1,0 +1,12 @@
+groups:
+  aruba:
+    hosts:
+      cx-01:
+        hostname: 192.168.211.130
+      cx-02:
+        hostname: 192.168.211.131
+
+  linux:
+    hosts:
+      ubuntu:
+        hostname: 192.168.211.136
