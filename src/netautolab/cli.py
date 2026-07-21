@@ -4,14 +4,27 @@ from rich.console import Console
 from rich.table import Table
 
 from .config import load_config
+from .connectivity import ping as ping_host
 from .doctor import run
-from .inventory import load_inventory
+from .inventory import load_inventory, get_all_hosts
+from .ssh import test_connection
 from .version import __version__
+from .commands.version import register as register_version
 
 app = typer.Typer(
     help="Professional Network Automation Learning Platform",
     add_completion=False,
 )
+
+ssh_app = typer.Typer(
+    help="SSH Operations"
+)
+
+app.add_typer(
+    ssh_app,
+    name="ssh",
+)
+
 
 console = Console()
 
@@ -50,9 +63,6 @@ def config():
     console.print(table)
 
 
-if __name__ == "__main__":
-    app()
-
 @app.command()
 def inventory():
     """Display the inventory."""
@@ -62,7 +72,7 @@ def inventory():
     table = Table(title="Inventory Summary")
     table.add_column("Group", style="cyan")
     table.add_column("Host", style="green")
-    table.add_column("Hostname", style="yellow")
+    table.add_column("Host", style="yellow")
 
     groups = inv.get("groups", {})
 
@@ -73,7 +83,68 @@ def inventory():
             table.add_row(
                 group_name,
                 host_name,
-                host_data.get("hostname", "-"),
+                host_data.get("host", "-"),
             )
 
     console.print(table)
+
+@app.command()
+def ping():
+    """Ping all devices in the inventory."""
+
+    inv = load_inventory()
+
+    table = Table(title="Connectivity Check")
+    table.add_column("Host", style="cyan")
+    table.add_column("IP", style="green")
+    table.add_column("Status", style="yellow")
+
+    groups = inv.get("groups", {})
+
+    for group_data in groups.values():
+        hosts = group_data.get("hosts", {})
+
+        for host_name, host_data in hosts.items():
+            ip = host_data.get("host", "")
+
+            status = "✅ Reachable" if ping_host(ip) else "❌ Unreachable"
+
+            table.add_row(host_name, ip, status)
+
+    console.print(table)
+
+
+@ssh_app.command("test")
+def ssh_test():
+    console = Console()
+
+    table = Table(title="SSH Connectivity")
+
+    table.add_column("Host")
+    table.add_column("IP")
+    table.add_column("Status")
+
+    hosts = get_all_hosts()
+
+    for host in hosts:
+        success, message = test_connection(
+            host=host["host"],
+            platform=host["platform"],
+            username=host["username"],
+            password=host["password"],
+        )
+
+        status = "✅ Connected" if success else f"❌ {message}"
+
+        table.add_row(
+            host["name"],
+            host["host"],
+            status,
+        )
+
+    console.print(table)
+
+register_version(app)
+
+if __name__ == "__main__":
+    app()

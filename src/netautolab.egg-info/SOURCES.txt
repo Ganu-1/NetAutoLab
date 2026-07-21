@@ -5,6 +5,7 @@ src/netautolab/__init__.py
 src/netautolab/__main__.py
 src/netautolab/cli.py
 src/netautolab/config.py
+src/netautolab/connectivity.py
 src/netautolab/doctor.py
 src/netautolab/inventory.py
 src/netautolab/version.py
@@ -14,3 +15,5 @@ src/netautolab.egg-info/dependency_links.txt
 src/netautolab.egg-info/entry_points.txt
 src/netautolab.egg-info/requires.txt
 src/netautolab.egg-info/top_level.txt
+src/netautolab/commands/__init__.py
+src/netautolab/commands/version.py

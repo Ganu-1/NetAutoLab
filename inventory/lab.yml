@@ -1,12 +1,21 @@
 groups:
   aruba:
+    platform: aruba_aoscx
+    username: admin
+    password: aruba@123
+
     hosts:
       cx-01:
-        hostname: 192.168.211.130
+        host: 192.168.211.130
+
       cx-02:
-        hostname: 192.168.211.131
+        host: 192.168.211.131
 
   linux:
+    platform: linux
+    username: aruba
+    password: Aruba@123
+
     hosts:
       ubuntu:
-        hostname: 192.168.211.136
+        host: 192.168.211.136
