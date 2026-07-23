@@ -22,9 +22,19 @@ ssh_app = typer.Typer(
     help="SSH Operations"
 )
 
+backup_app = typer.Typer(
+    help="Backup Operations"
+)
+
+
 app.add_typer(
     ssh_app,
     name="ssh",
+)
+
+app.add_typer(
+    backup_app,
+    name="backup",
 )
 
 
@@ -148,8 +158,8 @@ def ssh_test():
 
 register_version(app)
 
-@app.command()
-def backup():
+@backup_app.command("all")
+def backup_all():
     """Initialize a lab backup."""
 
     backup_dir = create_backup_structure()
