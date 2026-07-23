@@ -10,6 +10,8 @@ from .inventory import load_inventory, get_all_hosts
 from .ssh import test_connection
 from .version import __version__
 from .commands.version import register as register_version
+from .backup import create_backup_structure
+
 
 app = typer.Typer(
     help="Professional Network Automation Learning Platform",
@@ -145,6 +147,16 @@ def ssh_test():
     console.print(table)
 
 register_version(app)
+
+@app.command()
+def backup():
+    """Initialize a lab backup."""
+
+    backup_dir = create_backup_structure()
+
+    console.print("[green]Backup initialized successfully.[/green]")
+    console.print(f"Location: {backup_dir}")
+
 
 if __name__ == "__main__":
     app()
