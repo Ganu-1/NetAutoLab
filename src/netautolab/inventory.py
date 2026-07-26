@@ -2,6 +2,8 @@ from pathlib import Path
 
 import yaml
 
+from .models import Device
+
 INVENTORY_FILE = Path("inventory/lab.yml")
 
 
@@ -21,17 +23,17 @@ def load_inventory() -> dict:
         return yaml.safe_load(file) or {}
 
 
-def get_all_hosts() -> list[dict]:
+def get_all_hosts() -> list[Device]:
     """
     Return all hosts from the inventory in a normalized format.
     """
 
     inventory = load_inventory()
-    hosts = []
+    hosts: list[Device] = []
 
     groups = inventory.get("groups", {})
 
-    for group_name, group_data in groups.items():
+    for _, group_data in groups.items():
 
         platform = group_data.get("platform", "")
         username = group_data.get("username", "")
@@ -40,14 +42,14 @@ def get_all_hosts() -> list[dict]:
         for host_name, host_data in group_data.get("hosts", {}).items():
 
             hosts.append(
-                {
-                    "group": group_name,
-                    "name": host_name,
-                    "host": host_data.get("host", ""),
-                    "platform": platform,
-                    "username": username,
-                    "password": password,
-                }
-            )
+                 Device(
+                     name=host_name,
+                     host=host_data.get("host", ""),
+                     platform=platform,
+                     username=username,
+                     password=password,
+              )
+          )
+
 
     return hosts

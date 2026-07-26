@@ -136,21 +136,21 @@ def ssh_test():
     table.add_column("IP")
     table.add_column("Status")
 
-    hosts = get_all_hosts()
+    devices = get_all_hosts()
 
-    for host in hosts:
+    for device in devices:
         success, message = test_connection(
-            host=host["host"],
-            platform=host["platform"],
-            username=host["username"],
-            password=host["password"],
+            host=device.host,
+            platform=device.platform,
+            username=device.username,
+            password=device.password,
         )
 
         status = "✅ Connected" if success else f"❌ {message}"
 
         table.add_row(
-            host["name"],
-            host["host"],
+            device.name,
+            device.host,
             status,
         )
 
