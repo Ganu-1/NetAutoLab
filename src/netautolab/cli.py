@@ -10,7 +10,13 @@ from .inventory import load_inventory, get_all_hosts
 from .ssh import test_connection
 from .version import __version__
 from .commands.version import register as register_version
-from .backup import create_backup_structure
+from .backup import (
+    SnapshotError,
+    backup_devices,
+    create_backup_structure,
+    list_snapshots,
+    load_snapshot,
+)
 
 
 app = typer.Typer(
@@ -160,13 +166,140 @@ register_version(app)
 
 @backup_app.command("all")
 def backup_all():
-    """Initialize a lab backup."""
+    """Backup configuration from all devices."""
 
     backup_dir = create_backup_structure()
+    devices = get_all_hosts()
 
-    console.print("[green]Backup initialized successfully.[/green]")
+    results = backup_devices(
+        devices=devices,
+        backup_dir=backup_dir,
+    )
+
+    table = Table(title="Backup Results")
+    table.add_column("Device")
+    table.add_column("Status")
+    table.add_column("Details")
+
+    for result in results:
+        status = result["status"]
+
+        if status == "success":
+            table.add_row(
+                result["device"],
+                "✅ Success",
+                "Configuration backed up",
+            )
+        else:
+            table.add_row(
+                result["device"],
+                "❌ Failed",
+                result.get("error", "Unknown error"),
+            )
+
+    console.print(table)
     console.print(f"Location: {backup_dir}")
 
 
+
+
+@backup_app.command("list")
+def backup_list():
+    """List available backup snapshots."""
+
+    snapshots = list_snapshots()
+
+    if not snapshots:
+        console.print("[yellow]No backup snapshots found.[/yellow]")
+        return
+
+    table = Table(title="Backup Snapshots")
+
+    table.add_column("Snapshot")
+    table.add_column("Status")
+    table.add_column("Devices")
+    table.add_column("Successful")
+    table.add_column("Failed")
+
+    for snapshot in snapshots:
+        manifest = snapshot["manifest"]
+
+        table.add_row(
+            snapshot["name"],
+            manifest.get("status", "-"),
+            str(manifest.get("devices", 0)),
+            str(manifest.get("successful", 0)),
+            str(manifest.get("failed", 0)),
+        )
+
+    console.print(table)
+
+
+if __name__ == "__main__":
+    app()
+
+    console.print(table)
+
+
+if __name__ == "__main__":
+    app()
+
+@backup_app.command("show")
+def backup_show(snapshot: str):
+    """Show details of a backup snapshot."""
+
+    try:
+        snapshot_data = load_snapshot(snapshot)
+    except SnapshotError as exc:
+        console.print(f"[red]Error:[/red] {exc}")
+        raise typer.Exit(code=1)
+
+    manifest = snapshot_data["manifest"]
+
+    console.print(f"\n[bold]Snapshot:[/bold] {snapshot}")
+    console.print(
+        f"[bold]Status:[/bold] {manifest.get('status', '-')}"
+    )
+    console.print(
+        f"[bold]Backup Time:[/bold] "
+        f"{manifest.get('backup_time', '-')}"
+    )
+    console.print(
+        f"[bold]Devices:[/bold] {manifest.get('devices', 0)}"
+    )
+    console.print(
+        f"[bold]Successful:[/bold] "
+        f"{manifest.get('successful', 0)}"
+    )
+    console.print(
+        f"[bold]Failed:[/bold] {manifest.get('failed', 0)}"
+    )
+
+    results = manifest.get("results", [])
+
+    table = Table(title="Device Backups")
+
+    table.add_column("Device")
+    table.add_column("Platform")
+    table.add_column("Status")
+    table.add_column("Configuration")
+    table.add_column("Error")
+
+    for result in results:
+        table.add_row(
+            result.get("device", "-"),
+            result.get("platform", "-"),
+            (
+                "✅ Success"
+                if result.get("status") == "success"
+                else "❌ Failed"
+            ),
+            result.get("config", "-"),
+            result.get("error", "-"),
+        )
+
+    console.print(table)
+
+    
 if __name__ == "__main__":
     app()

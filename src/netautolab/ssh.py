@@ -4,10 +4,32 @@ from netmiko.exceptions import (
     NetmikoTimeoutException,
 )
 
+from .models import Device
+
 DEVICE_TYPE_MAP = {
     "aruba_aoscx": "aruba_aoscx",
     "linux": "linux",
 }
+
+
+def connect_device(device: Device):
+    """
+    Create and return a Netmiko connection for a Device.
+    """
+
+    device_type = DEVICE_TYPE_MAP.get(device.platform)
+
+    if device_type is None:
+        raise ValueError(
+            f"Unsupported platform: {device.platform}"
+        )
+
+    return ConnectHandler(
+        device_type=device_type,
+        host=device.host,
+        username=device.username,
+        password=device.password,
+    )
 
 
 def test_connection(host, platform, username, password):
