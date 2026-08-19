@@ -305,6 +305,83 @@ def backup_show(snapshot: str):
 
     console.print(table)
 
+@backup_app.command("diff")
+def backup_diff(snapshot: str, device: str):
+    """Compare a snapshot configuration with the current device configuration."""
+
+    from .backup.diff import diff_snapshot
+
+    try:
+        result = diff_snapshot(
+            snapshot_name=snapshot,
+            device_name=device,
+        )
+
+    except Exception as exc:
+        console.print(
+            f"[red]❌ Configuration diff failed:[/red] {exc}"
+        )
+        raise typer.Exit(code=1)
+
+    table = Table(title="Configuration Diff")
+
+    table.add_column("Item")
+    table.add_column("Value")
+
+    table.add_row("Snapshot", result["snapshot"])
+    table.add_row("Device", result["device"])
+    table.add_row("Added", str(result["added"]))
+    table.add_row("Removed", str(result["removed"]))
+
+    if result["changed"]:
+        table.add_row("Status", "⚠️ CHANGED")
+    else:
+        table.add_row("Status", "✅ IDENTICAL")
+
+    console.print(table)
+
+    if result["changed"]:
+        console.print("\n[bold]Changes:[/bold]")
+
+        added_lines = [
+            line
+            for line in result["diff"]
+            if line.startswith("+") and not line.startswith("+++")
+        ]
+
+        removed_lines = [
+            line
+            for line in result["diff"]
+            if line.startswith("-") and not line.startswith("---")
+        ]
+
+        console.print(
+            "\n[bold]Added to current configuration:[/bold]"
+        )
+
+        if added_lines:
+            for line in added_lines:
+                console.print(f"[green]{line}[/green]")
+        else:
+            console.print("[dim]None[/dim]")
+
+        console.print(
+            "\n[bold]Removed from current configuration:[/bold]"
+        )
+
+        if removed_lines:
+            for line in removed_lines:
+                console.print(f"[red]{line}[/red]")
+        else:
+            console.print("[dim]None[/dim]")
+
+    else:
+        console.print(
+            "\n[green]"
+            "Snapshot and current configuration are identical."
+            "[/green]"
+        )
+
 @restore_app.command("validate")
 def restore_validate(snapshot: str, device: str):
     """Validate a restore operation without modifying the device."""

@@ -40,6 +40,23 @@ class ArubaProvider(Provider):
             if connection is not None:
                 connection.disconnect()
 
+    def get_running_config(self, device: Device):
+        """Return the current running configuration of an Aruba CX device."""
+
+        connection = None
+
+        try:
+            connection = connect_device(device)
+
+            return connection.send_command(
+                "show running-config",
+                read_timeout=60,
+            )
+
+        finally:
+            if connection is not None:
+                connection.disconnect()
+
     def restore(self, device: Device, source: str):
         """Restore an Aruba CX configuration from a backup file."""
 
