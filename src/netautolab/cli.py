@@ -18,6 +18,14 @@ from .backup import (
     load_snapshot,
 )
 
+from .backup.restore import (
+    RestoreValidationError,
+    preview_restore,
+    validate_restore,
+)
+
+from .providers import get_provider
+
 
 app = typer.Typer(
     help="Professional Network Automation Learning Platform",
@@ -32,6 +40,9 @@ backup_app = typer.Typer(
     help="Backup Operations"
 )
 
+restore_app = typer.Typer(
+    help="Restore Operations"
+)
 
 app.add_typer(
     ssh_app,
@@ -43,6 +54,10 @@ app.add_typer(
     name="backup",
 )
 
+app.add_typer(
+    restore_app,
+    name="restore",
+)
 
 console = Console()
 
@@ -234,16 +249,6 @@ def backup_list():
 
     console.print(table)
 
-
-if __name__ == "__main__":
-    app()
-
-    console.print(table)
-
-
-if __name__ == "__main__":
-    app()
-
 @backup_app.command("show")
 def backup_show(snapshot: str):
     """Show details of a backup snapshot."""
@@ -300,6 +305,340 @@ def backup_show(snapshot: str):
 
     console.print(table)
 
-    
+@restore_app.command("validate")
+def restore_validate(snapshot: str, device: str):
+    """Validate a restore operation without modifying the device."""
+
+    try:
+        result = validate_restore(
+            snapshot_name=snapshot,
+            device_name=device,
+        )
+
+    except RestoreValidationError as exc:
+        console.print(f"[red]❌ Restore validation failed:[/red] {exc}")
+        raise typer.Exit(code=1)
+
+    table = Table(title="Restore Validation")
+
+    table.add_column("Check")
+    table.add_column("Result")
+
+    table.add_row(
+        "Snapshot",
+        result["snapshot"],
+    )
+
+    table.add_row(
+        "Device",
+        result["device"],
+    )
+
+    table.add_row(
+        "Platform",
+        result["platform"],
+    )
+
+    table.add_row(
+        "Host",
+        result["host"],
+    )
+
+    table.add_row(
+        "Configuration",
+        result["config"],
+    )
+
+    table.add_row(
+        "Configuration Size",
+        f'{result["config_size"]} bytes',
+    )
+
+    table.add_row(
+        "Validation",
+        "✅ PASS",
+    )
+
+    console.print(table)
+    console.print(
+        "[green]Restore validation successful. "
+        "No device configuration was changed.[/green]"
+    )
+
+@restore_app.command("preview")
+def restore_preview(snapshot: str, device: str):
+    """Preview a restore without modifying the device."""
+
+    try:
+        result = preview_restore(
+            snapshot_name=snapshot,
+            device_name=device,
+        )
+
+    except RestoreValidationError as exc:
+        console.print(
+            f"[red]❌ Restore preview failed:[/red] {exc}"
+        )
+        raise typer.Exit(code=1)
+
+    table = Table(title="Restore Preview")
+
+    table.add_column("Item")
+    table.add_column("Value")
+
+    table.add_row(
+        "Snapshot",
+        result["snapshot"],
+    )
+
+    table.add_row(
+        "Device",
+        result["device"],
+    )
+
+    table.add_row(
+        "Platform",
+        result["platform"],
+    )
+
+    table.add_row(
+        "Host",
+        result["host"],
+    )
+
+    table.add_row(
+        "Configuration",
+        result["config"],
+    )
+
+    table.add_row(
+        "Configuration Size",
+        f'{result["config_size"]} bytes',
+    )
+
+    console.print(table)
+
+    console.print(
+        "\n[yellow]⚠️ PREVIEW ONLY[/yellow]"
+    )
+
+    console.print(
+        "[yellow]"
+        "No configuration changes will be made to the device."
+        "[/yellow]"
+    )
+
+    console.print("\n[bold]Configuration:[/bold]")
+    console.print(result["configuration"])
+
+
+@restore_app.command("apply")
+def restore_apply(
+    snapshot: str,
+    device: str,
+    yes: bool = typer.Option(
+        False,
+        "--yes",
+        help="Confirm and apply the restore.",
+    ),
+):
+    """Apply a snapshot configuration to a device."""
+
+    # ---------------------------------------------------------
+    # 1. Validate restore
+    # ---------------------------------------------------------
+
+    try:
+        validation = validate_restore(
+            snapshot_name=snapshot,
+            device_name=device,
+        )
+
+    except RestoreValidationError as exc:
+        console.print(
+            f"[red]❌ Restore validation failed:[/red] {exc}"
+        )
+        raise typer.Exit(code=1)
+
+    # ---------------------------------------------------------
+    # 2. Show restore information
+    # ---------------------------------------------------------
+
+    table = Table(title="Restore Apply")
+
+    table.add_column("Item")
+    table.add_column("Value")
+
+    table.add_row(
+        "Snapshot",
+        validation["snapshot"],
+    )
+
+    table.add_row(
+        "Device",
+        validation["device"],
+    )
+
+    table.add_row(
+        "Platform",
+        validation["platform"],
+    )
+
+    table.add_row(
+        "Host",
+        validation["host"],
+    )
+
+    table.add_row(
+        "Configuration",
+        validation["config"],
+    )
+
+    table.add_row(
+        "Configuration Size",
+        f'{validation["config_size"]} bytes',
+    )
+
+    console.print(table)
+
+    # ---------------------------------------------------------
+    # 3. Require explicit confirmation
+    # ---------------------------------------------------------
+
+    if not yes:
+        console.print(
+            "\n[yellow]⚠️ RESTORE NOT APPLIED[/yellow]"
+        )
+
+        console.print(
+            "[yellow]"
+            "This operation will modify the device."
+            "[/yellow]"
+        )
+
+        console.print(
+            "\nRun the command again with [bold]--yes[/bold] "
+            "to apply the configuration."
+        )
+
+        raise typer.Exit(code=0)
+
+    # ---------------------------------------------------------
+    # 4. Create pre-restore backup
+    # ---------------------------------------------------------
+
+    console.print(
+        "\n[cyan]Creating pre-restore backup...[/cyan]"
+    )
+
+    try:
+        backup_dir = create_backup_structure()
+
+        devices = get_all_hosts()
+
+        target_device = next(
+            (
+                current_device
+                for current_device in devices
+                if current_device.name == device
+            ),
+            None,
+        )
+
+        if target_device is None:
+            raise RestoreValidationError(
+                f"Device '{device}' is not present in inventory."
+            )
+
+        backup_results = backup_devices(
+            [target_device],
+            backup_dir,
+        )
+
+        backup_result = backup_results[0]
+
+        if backup_result.get("status") != "success":
+            raise RestoreValidationError(
+                "Pre-restore backup failed: "
+                + backup_result.get(
+                    "error",
+                    "Unknown backup error.",
+                )
+            )
+
+        console.print(
+            f"[green]✅ Pre-restore backup created:[/green] "
+            f"{backup_dir}"
+        )
+
+    except Exception as exc:
+        console.print(
+            f"[red]❌ Pre-restore backup failed:[/red] {exc}"
+        )
+
+        console.print(
+            "[red]Restore aborted. No configuration was changed.[/red]"
+        )
+
+        raise typer.Exit(code=1)
+
+    # ---------------------------------------------------------
+    # 5. Apply configuration
+    # ---------------------------------------------------------
+
+    console.print(
+        "\n[yellow]⚠️ Applying configuration to device...[/yellow]"
+    )
+
+    try:
+        provider = get_provider(validation["platform"])
+
+        result = provider.restore(
+            target_device,
+            validation["config"],
+        )
+
+    except Exception as exc:
+        console.print(
+            f"[red]❌ Restore failed:[/red] {exc}"
+        )
+        raise typer.Exit(code=1)
+
+    # ---------------------------------------------------------
+    # 6. Report result
+    # ---------------------------------------------------------
+
+    result_table = Table(title="Restore Result")
+
+    result_table.add_column("Item")
+    result_table.add_column("Value")
+
+    result_table.add_row(
+        "Device",
+        result["device"],
+    )
+
+    result_table.add_row(
+        "Commands Applied",
+        str(result["commands"]),
+    )
+
+    result_table.add_row(
+        "Pre-Restore Backup",
+        str(backup_dir),
+    )
+
+    result_table.add_row(
+        "Status",
+        "✅ SUCCESS",
+    )
+
+    console.print(result_table)
+
+    console.print(
+        "\n[green]Restore completed successfully.[/green]"
+    )
+
+
 if __name__ == "__main__":
     app()
